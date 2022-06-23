@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"crypto/tls"
 	"encoding/json"
+	"fallparams/headless"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"regexp"
@@ -17,28 +19,37 @@ import (
 	flag "github.com/ogier/pflag"
 )
 
+var h bool
+var x string
+var o string
+var m int
+
 func main() {
-	var m string
+	var sm string
 	var r string
 	var s bool
 	var c int
 	var v bool
 	var u bool
-	flag.StringVarP(&m, "site-map", "m", "", "url list")
+	flag.StringVarP(&x, "method", "X", "GET", "method")
+	flag.StringVarP(&sm, "site-map", "i", "", "url list")
+	flag.IntVarP(&m, "chunk", "m", 20, "url parameter count on output")
+	flag.StringVarP(&o, "output", "o", "params", "output format (params,url)")
 	flag.StringVarP(&r, "responce-file", "r", "", "responce file")
 	flag.BoolVarP(&s, "silent", "s", false, "silent mode")
 	flag.BoolVarP(&v, "verbose", "v", false, "verbose mode")
 	flag.BoolVarP(&v, "urlparams", "u", false, "urlparams only")
 	flag.IntVarP(&c, "concurrency", "c", 20, "concurrency")
+	flag.BoolVarP(&h, "headless", "l", false, "headless")
 	flag.Parse()
 	url := flag.Arg(0)
 
 	const banner = `
-	_____     _ _ ____                               
+	 _____     _ _ ____                               
 	|  ___|_ _| | |  _ \ __ _ _ __ __ _ _ __ ___  ___ 
 	| |_ / _' | | | |_) / _' | '__/ _' | '_ ' _ \/ __|
 	|  _| (_| | | |  __/ (_| | | | (_| | | | | | \__ \
-	|_|  \__,_|_|_|_|   \__,_|_|  \__,_|_| |_| |_|___/  v0.0.5											  
+	|_|  \__,_|_|_|_|   \__,_|_|  \__,_|_| |_| |_|___/  v0.1.6											  
    	by: mk990
 `
 	if !s {
@@ -48,11 +59,18 @@ func main() {
 	parameter := []string{}
 	if url != "" {
 		parameter = append(parameter, getHttpParams(url)...)
-		printParams(parameter)
+		if len(parameter) != 0 {
+			if o == "url" {
+				printWithUrlParams(parameter, url)
+			} else {
+				printParams(parameter)
+			}
+		}
 		os.Exit(0)
 	}
 
 	if r != "" {
+		// TODO: read from file
 		file, err := ioutil.ReadFile(r)
 		if err != nil {
 			log.Fatal(err)
@@ -61,8 +79,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	if m != "" {
-		getSitemapParams(m)
+	if sm != "" {
+		getSitemapParams(sm)
 	}
 
 	sc := bufio.NewScanner(os.Stdin)
@@ -72,11 +90,17 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			var url string
 			for item := range ch {
 				parameter = append(parameter, getHttpParams(item)...)
+				url = item
 			}
 			if len(parameter) != 0 {
-				printParams(parameter)
+				if o == "url" {
+					printWithUrlParams(parameter, url)
+				} else {
+					printParams(parameter)
+				}
 			}
 		}()
 	}
@@ -106,7 +130,14 @@ func getSitemapParams(url string) {
 }
 
 func getHttpParams(url string) []string {
-	page, urlparams := httpReq(url, "GET")
+	urlparams := []string{}
+	var page string
+
+	if !h {
+		page, urlparams = httpReq(url, x)
+	} else {
+		page = headless.Request(url)
+	}
 	parameter := getTextParams(page)
 	parameter = append(parameter, urlparams...)
 	return uniqueArray(parameter)
@@ -116,6 +147,17 @@ func getTextParams(text string) []string {
 	parameter := []string{}
 	doc := soup.HTMLParse(text)
 	links := doc.FindAll("input")
+	for _, link := range links {
+		name := link.Attrs()["name"]
+		id := link.Attrs()["id"]
+		if name != "" {
+			parameter = append(parameter, name)
+		}
+		if id != "" {
+			parameter = append(parameter, id)
+		}
+	}
+	links = doc.FindAll("textarea")
 	for _, link := range links {
 		name := link.Attrs()["name"]
 		id := link.Attrs()["id"]
@@ -192,6 +234,18 @@ func printParams(params []string) {
 	}
 }
 
+func printWithUrlParams(params []string, url string) {
+	var allParam string
+	for i, p := range uniqueArray(params) {
+		allParam = allParam + "&" + p + "=" + generateRandomString(5)
+		if i%m == 0 && i != 0 {
+			fmt.Println(url + "?" + allParam[1:])
+			allParam = ""
+		}
+	}
+	fmt.Println(url + "?" + allParam[1:])
+}
+
 func CheckError(e error) {
 	if e != nil {
 		fmt.Println(e)
@@ -226,4 +280,13 @@ func httpReq(url string, method string) (string, []string) {
 	}
 
 	return string(body), getURLParameter(resp)[:]
+}
+
+func generateRandomString(n int) string {
+	var letter = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letter[rand.Intn(len(letter))]
+	}
+	return string(b)
 }
