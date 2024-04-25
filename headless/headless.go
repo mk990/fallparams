@@ -3,7 +3,7 @@ package headless
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/chromedp/chromedp"
@@ -11,7 +11,12 @@ import (
 
 func Request(url string) string {
 	var fullDOM string
-	ctx, cancel := chromedp.NewContext(context.Background())
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.IgnoreCertErrors,
+	)
+	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer cancel()
+	ctx, cancel := chromedp.NewContext(allocCtx)
 	defer cancel()
 	err := chromedp.Run(ctx,
 		chromedp.Navigate(url),
@@ -36,7 +41,7 @@ func Screenshot(url string) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	if err := ioutil.WriteFile(GenerateNameFromUrl(url)+".png", buf, 0644); err != nil {
+	if err := os.WriteFile(GenerateNameFromUrl(url)+".png", buf, 0644); err != nil {
 		fmt.Println(err)
 	}
 }

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fallparams/headless"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -31,6 +31,7 @@ func main() {
 	var c int
 	var v bool
 	var u bool
+	var d bool
 	flag.StringVarP(&x, "method", "X", "GET", "method")
 	flag.StringVarP(&sm, "site-map", "i", "", "url list")
 	flag.IntVarP(&m, "chunk", "m", 20, "url parameter count on output")
@@ -41,15 +42,16 @@ func main() {
 	flag.BoolVarP(&v, "urlparams", "u", false, "urlparams only")
 	flag.IntVarP(&c, "concurrency", "c", 20, "concurrency")
 	flag.BoolVarP(&h, "headless", "l", false, "headless")
+	flag.BoolVarP(&d, "debug", "d", false, "headless")
 	flag.Parse()
 	url := flag.Arg(0)
 
 	const banner = `
-	 _____     _ _ ____                               
+	 _____     _ _ ____ 
 	|  ___|_ _| | |  _ \ __ _ _ __ __ _ _ __ ___  ___ 
 	| |_ / _' | | | |_) / _' | '__/ _' | '_ ' _ \/ __|
 	|  _| (_| | | |  __/ (_| | | | (_| | | | | | \__ \
-	|_|  \__,_|_|_|_|   \__,_|_|  \__,_|_| |_| |_|___/  v0.1.6											  
+	|_|  \__,_|_|_|_|   \__,_|_|  \__,_|_| |_| |_|___/  v0.1.9
    	by: mk990
 `
 	if !s {
@@ -71,7 +73,7 @@ func main() {
 
 	if r != "" {
 		// TODO: read from file
-		file, err := ioutil.ReadFile(r)
+		file, err := os.ReadFile(r)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -92,15 +94,19 @@ func main() {
 			defer wg.Done()
 			var url string
 			for item := range ch {
+				if d {
+					println(item)
+				}
 				parameter = append(parameter, getHttpParams(item)...)
 				url = item
-			}
-			if len(parameter) != 0 {
-				if o == "url" {
-					printWithUrlParams(parameter, url)
-				} else {
-					printParams(parameter)
+				if len(parameter) != 0 {
+					if o == "url" {
+						printWithUrlParams(parameter, url)
+					} else {
+						printParams(parameter)
+					}
 				}
+				parameter = nil
 			}
 		}()
 	}
@@ -274,7 +280,7 @@ func httpReq(url string, method string) (string, []string) {
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}
