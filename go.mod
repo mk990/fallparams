@@ -1,4 +1,4 @@
-module fallparams
+module github.com/mk990/fallparams
 
 go 1.17
 
