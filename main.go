@@ -32,17 +32,17 @@ func main() {
 	var v bool
 	var u bool
 	var d bool
-	flag.StringVarP(&x, "method", "X", "GET", "method")
+	flag.StringVarP(&x, "method", "X", "GET", "method (GET|POST|PUT|DELETE)")
 	flag.StringVarP(&sm, "site-map", "i", "", "url list")
 	flag.IntVarP(&m, "chunk", "m", 20, "url parameter count on output")
-	flag.StringVarP(&o, "output", "o", "params", "output format (params,url)")
+	flag.StringVarP(&o, "output-format", "O", "params", "output format (params,url)")
 	flag.StringVarP(&r, "responce-file", "r", "", "responce file")
 	flag.BoolVarP(&s, "silent", "s", false, "silent mode")
 	flag.BoolVarP(&v, "verbose", "v", false, "verbose mode")
 	flag.BoolVarP(&v, "urlparams", "u", false, "urlparams only")
 	flag.IntVarP(&c, "concurrency", "c", 20, "concurrency")
 	flag.BoolVarP(&h, "headless", "l", false, "headless")
-	flag.BoolVarP(&d, "debug", "d", false, "headless")
+	flag.BoolVarP(&d, "debug", "d", false, "debug")
 	flag.Parse()
 	url := flag.Arg(0)
 
