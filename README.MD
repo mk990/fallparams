@@ -1,6 +1,6 @@
-# fallparams
+<h1 align="center">Fallparams</h1>
 
-This project is a Go application for extracting parameters from HTML pages and URLs.
+<h3 align="center">Extracting Parameters From HTML Pages & URLs.</h3>
 
 ## Getting Started
 
@@ -8,14 +8,13 @@ To get a local copy up and running follow these simple steps.
 
 ### Prerequisites
 
-- Go installed on your local machine
+- Go language must be installed.
 
 ### Installation
 
 ```sh
 go install -v github.com/mk990/fallparams@latest
 ```
-Here's a basic README.md file for your GitHub repository:
 
 ### Usage
 
@@ -44,17 +43,33 @@ fallparams [options] [url]
 ```sh
 fallparams http://example.com
 ```
+
 - Extract parameters from a list of URLs:
 
 ```sh
 cat urls.txt | fallparams
 ```
 
-Extract parameters from a sitemap:
+- Extract parameters from a sitemap:
 
 ```sh
 fallparams -i http://example.com/sitemap.xml
 ```
+
+- Assemble the founded parameter:
+
+```sh
+fallparams -i http://example.com/sitemap.xml -O url
+```
+
+- Combined with other tools to discover vulnerabilities:
+
+```
+fallparams -i http://example.com/sitemap.xml -o url | kxss
+
+fallparams -i http://example.com/sitemap.xml -o url | sqlmap
+```
+
 
 # Contributing
 
